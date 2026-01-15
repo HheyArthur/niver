@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feliz Aniversário - Quiz Gilberto Barros</title>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        /* Overlay para melhorar legibilidade */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: -1;
+        }
+        .background-img {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2; /* Abaixo do overlay */
+        }
+        .container {
+            padding: 50px;
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        h1 {
+            font-size: 3em;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+        .gift {
+            font-size: 5em;
+            animation: bounce 2s infinite;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .gift.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .gift.unlocked {
+            opacity: 1;
+            cursor: pointer;
+        }
+        .start-screen {
+            display: block;
+        }
+        .quiz, .success, .fail {
+            display: none;
+        }
+        .quiz {
+            margin-top: 50px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .question {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .option {
+            margin: 5px;
+            padding: 10px;
+            background: #00BFFF;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 80%;
+            max-width: 300px;
+        }
+        .option:hover {
+            background: #0099CC;
+        }
+        .option.selected {
+            background: #005F99;
+        }
+        button {
+            background: #FF4500;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+        button:hover {
+            background: #FF6347;
+        }
+        .result {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #FFD700;
+            animation: fall 3s linear infinite;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Imagem de fundo usando src -->
+<img class="background-img" src="./Sabadaço-band.jpg" alt="Fundo Sabadaço">
+
+   <div class="container">
+        <!-- Áudio inicial ao abrir -->
+        <audio id="initialAudio" src="./sabadaco.mp3" preload="auto"></audio>
+
+        <!-- Elementos de áudio para cada pergunta -->
+        <audio id="audio1" src="./cassino-cant-get-over.mp3" preload="auto"></audio>
+        <audio id="audio2" src="./asbaladas.mp3" preload="auto"></audio>
+        <audio id="audio3" src="./gilberto-barros-que-delicia.mp3" preload="auto"></audio>
+        <audio id="audio4" src="./quemquerover.mp3" preload="auto"></audio>
+        <audio id="audio5" src="./internacional_GFA5YpH.mp3" preload="auto"></audio>>
+
+
+        <!-- Tela Inicial -->
+        <div class="start-screen" id="start-screen">
+            <h1>Feliz Aniversário Lara Kravitz!</h1>
+            <div class="gift locked" id="gift">🎁</div>
+            <p>Responda o quiz para desbloquear o presente!</p>
+            <button id="start-quiz">Iniciar Quiz</button>
+        </div>
+
+        <!-- Quiz -->
+        <div class="quiz" id="quiz-section">
+            <div id="question-container">
+                <p class="question" id="question"></p>
+                <div class="options" id="options"></div>
+            </div>
+            <button id="next" style="display:none;">Próxima Pergunta</button>
+        </div>
+
+        <!-- Tela de Sucesso -->
+        <div class="success" id="success-screen">
+            <h2>Parabéns! Você desbloqueou o presente!</h2>
+            <p>Acertou pelo menos 4 perguntas. Clique no presente para ver a surpresa!</p>
+            <div class="gift unlocked" id="unlocked-gift">🎁</div>
+            <button id="restart">Jogar Novamente</button>
+        </div>
+
+        <!-- Tela de Falha -->
+        <div class="fail" id="fail-screen">
+            <h2>Ops! Tente Novamente!</h2>
+            <p>Você acertou menos de 4 perguntas. Estude mais sobre o Gilberto Barros e volte para tentar! 😊</p>
+            <button id="restart-fail">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Elementos
+        const startScreen = document.getElementById('start-screen');
+        const quizSection = document.getElementById('quiz-section');
+        const successScreen = document.getElementById('success-screen');
+        const failScreen = document.getElementById('fail-screen');
+        const startBtn = document.getElementById('start-quiz');
+        const unlockedGift = document.getElementById('unlocked-gift');
+        const restartBtn = document.getElementById('restart');
+        const restartFailBtn = document.getElementById('restart-fail');
+        const initialAudio = document.getElementById('initialAudio');
+
+        // Áudios para cada pergunta
+        const audios = [
+            document.getElementById('audio1'),
+            document.getElementById('audio2'),
+            document.getElementById('audio3'),
+            document.getElementById('audio4'),
+            document.getElementById('audio5')
+        ];
+
+        // Quiz Logic
+        const questions = [
+            {
+                question: "Qual é o nome do programa que Gilberto Barros apresenta?",
+                options: ["Sabadaço", "Domingo Espetacular", "Cidade Alerta", "Programa do Ratinho"],
+                answer: 0
+            },
+            {
+                question: "Em qual emissora o programa 'Sabadaço' é exibido?",
+                options: ["Globo", "Record TV", "Band", "SBT"],
+                answer: 2
+            },
+            {
+                question: "Em que ano o Gilberto Barros foi para a BAND??",
+                options: ["1999", "2000", "2001", "2002"],
+                answer: 3
+            },
+            {
+                question: "Em que ano o kasino foi no Sabadaço?",
+                options: ["2005", "2006", "2010", "2021"],
+                answer: 1
+            },
+            {
+                question: "Qual series o gilberto barros fez participação?",
+                options: ["Tremembé", "Justiça", "Maniaco do Parque", "À Brasileira"],
+                answer: 2
+            },
+           
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const nextBtn = document.getElementById('next');
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            questionEl.textContent = q.question;
+            optionsEl.innerHTML = '';
+            q.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.classList.add('option');
+                btn.textContent = option;
+                btn.addEventListener('click', () => selectAnswer(index, btn));
+                optionsEl.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(index, btn) {
+            if (index === questions[currentQuestion].answer) {
+                score++;
+            }
+            btn.classList.add('selected');
+            nextBtn.style.display = 'block';
+        }
+
+        nextBtn.addEventListener('click', () => {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                if (audios[currentQuestion]) {
+                    audios[currentQuestion].play();
+                }
+                loadQuestion();
+                nextBtn.style.display = 'none';
+            } else {
+                showResult();
+            }
+        });
+
+        function showResult() {
+            quizSection.style.display = 'none';
+            if (score >= 4) {
+                successScreen.style.display = 'block';
+                for (let i = 0; i < 50; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.classList.add('confetti');
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.animationDelay = Math.random() * 3 + 's';
+                    document.body.appendChild(confetti);
+                }
+            } else {
+                failScreen.style.display = 'block';
+            }
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            startScreen.style.display = 'block';
+            quizSection.style.display = 'none';
+            successScreen.style.display = 'none';
+            failScreen.style.display = 'none';
+        }
+
+        // Eventos
+        startBtn.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            quizSection.style.display = 'block';
+            loadQuestion();
+            // Tocar áudio inicial ao iniciar o quiz
+            initialAudio.play();
+        });
+
+        unlockedGift.addEventListener('click', () => {
+            window.open('https://www.youtube.com/watch?v=VIDEO_ID', '_blank');
+        });
+
+        restartBtn.addEventListener('click', restartQuiz);
+        restartFailBtn.addEventListener('click', restartQuiz);
+    </script>
+</body>
+</html>
